@@ -1,0 +1,33 @@
+{
+  "name": "Personal",
+  "badgeLabel": "YO",
+  "signingKey": "1a073510efe06b4c35e3e8a1b0106600385c167443ee0127f631c3aa1efeeb27",
+  "contact": {
+    "website": "https://github.com/gonzalorubino/extensions-source"
+  },
+  "extensionList": {
+    "extensions": [
+      {
+        "name": "ZonaTMO (Personal)",
+        "packageName": "eu.kanade.tachiyomi.extension.es.zonatmopersonal",
+        "resources": {
+          "apkUrl": "https://github.com/gonzalorubino/extensions-source/releases/download/8708896/tachiyomi-es.zonatmopersonal-v1.6.1.apk",
+          "iconUrl": "https://raw.githubusercontent.com/gonzalorubino/extensions-source/main/src/es/zonatmopersonal/res/mipmap-xhdpi/ic_launcher.png",
+          "jarUrl": "https://github.com/gonzalorubino/extensions-source/releases/download/8708896/tachiyomi-es.zonatmopersonal-v1.6.1.jar"
+        },
+        "extensionLib": "1.6",
+        "versionCode": "106001",
+        "versionName": "1.6.1",
+        "contentWarning": "CONTENT_WARNING_MIXED",
+        "sources": [
+          {
+            "id": "7925708057791761923",
+            "name": "ZonaTMO (Personal)",
+            "language": "es",
+            "homeUrl": "https://zonatmo.org"
+          }
+        ]
+      }
+    ]
+  }
+}
