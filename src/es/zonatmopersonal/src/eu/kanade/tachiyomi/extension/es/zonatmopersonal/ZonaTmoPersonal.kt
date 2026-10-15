@@ -1,5 +1,8 @@
 package eu.kanade.tachiyomi.extension.es.zonatmopersonal
 
+import androidx.preference.MultiSelectListPreference
+import androidx.preference.PreferenceScreen
+import eu.kanade.tachiyomi.source.ConfigurableSource
 import eu.kanade.tachiyomi.source.model.Filter
 import eu.kanade.tachiyomi.source.model.FilterList
 import eu.kanade.tachiyomi.source.model.MangasPage
@@ -13,6 +16,7 @@ import keiyoushi.network.rateLimit
 import keiyoushi.source.KeiSource
 import keiyoushi.utils.asJsoup
 import keiyoushi.utils.firstInstanceOrNull
+import keiyoushi.utils.getPreferences
 import keiyoushi.utils.getString
 import keiyoushi.utils.parseAs
 import keiyoushi.utils.textOrNull
@@ -31,7 +35,15 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 @Source
-abstract class ZonaTmoPersonal : KeiSource() {
+abstract class ZonaTmoPersonal :
+    KeiSource(),
+    ConfigurableSource {
+
+    private val preferences = getPreferences()
+
+    private val hiddenGenres: Set<String>
+        get() = preferences.getStringSet(HIDDEN_GENRES, DEFAULT_HIDDEN_GENRES).orEmpty()
+
     override fun OkHttpClient.Builder.configureClient() = apply {
         rateLimit(2) { it.host == baseUrl.toHttpUrl().host }
     }
@@ -160,11 +172,13 @@ abstract class ZonaTmoPersonal : KeiSource() {
                         }
                         if (value.isNotEmpty()) addQueryParameter(key, value)
                     }
-                    filters.firstInstanceOrNull<GenreFilter>()?.state?.forEach {
-                        when (it.state) {
-                            Filter.TriState.STATE_INCLUDE -> addQueryParameter("genders[]", it.id)
-                            Filter.TriState.STATE_EXCLUDE -> addQueryParameter("exclude_genders[]", it.id)
-                        }
+                    val genres = filters.firstInstanceOrNull<GenreFilter>()?.state.orEmpty()
+                    val included = genres.filter { it.state == Filter.TriState.STATE_INCLUDE }.map { it.id }
+                    val excluded = genres.filter { it.state == Filter.TriState.STATE_EXCLUDE }.map { it.id }
+                    included.forEach { addQueryParameter("genders[]", it) }
+                    // Explicitly including a hidden genre in the filters overrides hiding it
+                    (excluded + hiddenGenres - included.toSet()).distinct().forEach {
+                        addQueryParameter("exclude_genders[]", it)
                     }
                 }
                 .addQueryParameter("_pg", "1")
@@ -368,6 +382,17 @@ abstract class ZonaTmoPersonal : KeiSource() {
                 ?.let { Page(index, imageUrl = it) }
         }
 
+    override fun setupPreferenceScreen(screen: PreferenceScreen) {
+        MultiSelectListPreference(screen.context).apply {
+            key = HIDDEN_GENRES
+            title = "Géneros ocultos"
+            summary = "Se excluyen de Populares y de la búsqueda. Últimas subidas y los rankings no se pueden filtrar."
+            entries = GENRES.map { it.first }.toTypedArray()
+            entryValues = GENRES.map { it.second }.toTypedArray()
+            setDefaultValue(DEFAULT_HIDDEN_GENRES)
+        }.also(screen::addPreference)
+    }
+
     override fun getFilterList(data: JsonElement?): FilterList = FilterList(
         RankingFilter(),
         Filter.Separator(),
@@ -381,6 +406,10 @@ abstract class ZonaTmoPersonal : KeiSource() {
 
     companion object {
         private const val MANGA_URL_KEY = "zonatmopersonal.mangaUrl"
+        private const val HIDDEN_GENRES = "hidden_genres"
+
+        // BL, Boys Love, Yaoi, Yaoi (Soft)
+        private val DEFAULT_HIDDEN_GENRES = setOf("143", "30", "31", "96")
         private val backgroundImageRegex = """background-image:\s*url\(['"]?([^'")]+)""".toRegex()
         private val dateFormat = DateTimeFormatter.ofPattern("dd/MM/yyyy", Locale.ROOT)
     }

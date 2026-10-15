@@ -92,7 +92,7 @@ class Genre(name: String, val id: String) : Filter.TriState(name)
 
 class GenreFilter : Filter.Group<Genre>("Géneros", GENRES.map { Genre(it.first, it.second) })
 
-private val GENRES = arrayOf(
+val GENRES = arrayOf(
     "+15" to "133",
     "+18" to "27",
     "+19" to "144",
