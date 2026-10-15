@@ -408,8 +408,8 @@ abstract class ZonaTmoPersonal :
         private const val MANGA_URL_KEY = "zonatmopersonal.mangaUrl"
         private const val HIDDEN_GENRES = "hidden_genres"
 
-        // BL, Boys Love, Yaoi, Yaoi (Soft)
-        private val DEFAULT_HIDDEN_GENRES = setOf("143", "30", "31", "96")
+        // BL, Boys Love, Yaoi, Yaoi (Soft), Shounen Ai
+        private val DEFAULT_HIDDEN_GENRES = setOf("143", "30", "31", "96", "129")
         private val backgroundImageRegex = """background-image:\s*url\(['"]?([^'")]+)""".toRegex()
         private val dateFormat = DateTimeFormatter.ofPattern("dd/MM/yyyy", Locale.ROOT)
     }
