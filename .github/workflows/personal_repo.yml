@@ -27,6 +27,9 @@ jobs:
     name: Sync with keiyoushi
     if: github.event_name != 'push'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -43,6 +46,17 @@ jobs:
           git fetch upstream main
           git merge --no-edit upstream/main
           git push origin main
+
+      - name: Disable upstream workflows
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow list -R "$GITHUB_REPOSITORY" --all --json path,state --jq '.[] | select(.state == "active") | .path' |
+            while read -r path; do
+              [[ "$path" == ".github/workflows/personal_repo.yml" ]] && continue
+              echo "Disabling $path"
+              gh workflow disable -R "$GITHUB_REPOSITORY" "$path"
+            done
 
   build-publish:
     name: Build and publish
