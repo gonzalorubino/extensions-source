@@ -1,0 +1,254 @@
+package eu.kanade.tachiyomi.extension.es.zonatmoorgunoriginal
+
+import eu.kanade.tachiyomi.source.model.Filter
+
+open class UriPartFilter(displayName: String, private val vals: Array<Pair<String, String>>) :
+    Filter.Select<String>(displayName, vals.map { it.first }.toTypedArray()) {
+    fun toUriPart() = vals[state].second
+}
+
+class RankingFilter :
+    UriPartFilter(
+        "Ranking (ignora los demás filtros)",
+        arrayOf(
+            "Ninguno" to "",
+            "Top semanal" to "weekly",
+            "Top mensual" to "monthly",
+        ),
+    )
+
+class SortFilter :
+    Filter.Sort(
+        "Ordenar por",
+        SORTS.map { it.first }.toTypedArray(),
+        Selection(0, false),
+    ) {
+    fun toUriPart() = SORTS[state?.index ?: 0].second
+    fun direction() = if (state?.ascending == true) "asc" else "desc"
+}
+
+private val SORTS = arrayOf(
+    "Me gusta" to "likes_count",
+    "Alfabético" to "alphabetically",
+    "Puntuación" to "score",
+    "Creación" to "creation",
+    "Fecha estreno" to "release_date",
+    "Núm. capítulos" to "num_chapters",
+)
+
+class SearchByFilter :
+    UriPartFilter(
+        "Buscar por",
+        arrayOf(
+            "Título" to "title",
+            "Autor" to "author",
+            "Compañía" to "company",
+        ),
+    )
+
+class TypeFilter :
+    UriPartFilter(
+        "Tipo",
+        arrayOf(
+            "Ver todo" to "",
+            "Manga" to "manga",
+            "Manhua" to "manhua",
+            "Manhwa" to "manhwa",
+            "Webtoon" to "webtoon",
+            "Novela" to "novel",
+            "Comic" to "comic",
+            "One shot" to "one_shot",
+            "Doujinshi" to "doujinshi",
+            "OEL" to "oel",
+        ),
+    )
+
+class DemographyFilter :
+    UriPartFilter(
+        "Demografía",
+        arrayOf(
+            "Ver todo" to "",
+            "Seinen" to "seinen",
+            "Shoujo" to "shoujo",
+            "Shounen" to "shounen",
+            "Josei" to "josei",
+            "Kodomo" to "kodomo",
+        ),
+    )
+
+class StatusFilter :
+    UriPartFilter(
+        "Estado",
+        arrayOf(
+            "Ver todo" to "",
+            "En emisión" to "ongoing",
+            "Completado" to "completed",
+            "Finalizado" to "ended",
+            "En pausa" to "hiatus",
+            "Cancelado" to "cancelled",
+        ),
+    )
+
+class Genre(name: String, val id: String) : Filter.TriState(name)
+
+class GenreFilter : Filter.Group<Genre>("Géneros", GENRES.map { Genre(it.first, it.second) })
+
+private val GENRES = arrayOf(
+    "+15" to "133",
+    "+18" to "27",
+    "+19" to "144",
+    "Academia" to "111",
+    "Acción" to "1",
+    "Action" to "76",
+    "Adult Cast" to "81",
+    "Adulto" to "32",
+    "Adventure" to "77",
+    "Aliens" to "113",
+    "Animación" to "71",
+    "Anti-Heroe" to "134",
+    "Apocalíptico" to "47",
+    "Artes Marciales" to "41",
+    "Aventura" to "2",
+    "Award Winning" to "89",
+    "Bender" to "45",
+    "Bestias" to "136",
+    "BL" to "143",
+    "BL (Boys Love)" to "80",
+    "Bl Sin Censura" to "153",
+    "boys" to "149",
+    "Boys Love" to "30",
+    "boyslove" to "150",
+    "Celestialmoon Scan" to "154",
+    "Ciberpunk" to "62",
+    "Ciencia Ficción" to "9",
+    "Comedia" to "3",
+    "Comedy" to "83",
+    "Crimen" to "66",
+    "Cultivo" to "112",
+    "Demonios" to "50",
+    "Deporte" to "46",
+    "Deportes" to "11",
+    "Detective" to "147",
+    "Doujinshi" to "92",
+    "Drama" to "4",
+    "Ecchi" to "19",
+    "Ejercito" to "117",
+    "Epoca" to "157",
+    "Erotica" to "123",
+    "Escolar" to "18",
+    "Español" to "93",
+    "Evolución" to "151",
+    "Extranjero" to "70",
+    "Familia" to "25",
+    "Fantasía" to "5",
+    "Fantasía oscura" to "121",
+    "Fantasía urbana" to "98",
+    "Fantasy" to "78",
+    "ficcion" to "115",
+    "Gag Humor" to "109",
+    "Gender Bender" to "79",
+    "Género Bender" to "54",
+    "Girls Love" to "35",
+    "Gore" to "44",
+    "Gourmet" to "91",
+    "Guerra" to "64",
+    "Harem" to "20",
+    "Harem Inverso" to "40",
+    "Hetero" to "145",
+    "Historia" to "55",
+    "Historical" to "87",
+    "Histórico" to "14",
+    "Horror" to "6",
+    "Isekai" to "16",
+    "Josei" to "51",
+    "Love Polygon" to "126",
+    "Maduro" to "33",
+    "Magia" to "26",
+    "Manga" to "107",
+    "MangoScan" to "21",
+    "Manhwa" to "106",
+    "Manhwa +19" to "142",
+    "Mecha" to "17",
+    "Militar" to "43",
+    "Military" to "90",
+    "Misterio" to "7",
+    "Mucho Gogogo" to "141",
+    "Murim" to "138",
+    "Music" to "85",
+    "Musica" to "63",
+    "Mystery" to "102",
+    "Mythology" to "88",
+    "Niños" to "60",
+    "Nobl💌" to "155",
+    "Novela" to "86",
+    "Odio-Amor" to "139",
+    "Oeste" to "69",
+    "Omegaverse" to "132",
+    "Oneshot" to "104",
+    "Parodia" to "56",
+    "Policiaco" to "65",
+    "Premiados" to "110",
+    "Primer amor" to "120",
+    "Problemas Familiares" to "148",
+    "Psicológico" to "15",
+    "Psychological" to "101",
+    "Realidad" to "61",
+    "Realidad Virtual" to "49",
+    "Recuentos de la vida" to "22",
+    "Reencarnación" to "36",
+    "reencuentro de la vida" to "74",
+    "Regresion" to "24",
+    "Reincarnation" to "119",
+    "Retornado" to "137",
+    "Romance" to "8",
+    "Samurái" to "59",
+    "School" to "84",
+    "School Life" to "108",
+    "Sci-Fi" to "131",
+    "Seinen" to "53",
+    "Self-Published" to "125",
+    "Shonen" to "42",
+    "Shonen-ai" to "94",
+    "Shonen-ai (Yaoi Soft)" to "95",
+    "Shoujo" to "23",
+    "Shounen" to "73",
+    "Shounen Ai" to "129",
+    "Sistema" to "39",
+    "Sistema de Niveles" to "118",
+    "Slice of Life" to "10",
+    "Smut" to "29",
+    "sobre natural" to "75",
+    "Sobrenatural" to "12",
+    "Sports" to "99",
+    "Stream" to "135",
+    "Super Natural" to "97",
+    "Supernatural" to "34",
+    "Superpoderes" to "58",
+    "Supervivencia" to "48",
+    "Suspense" to "122",
+    "Team Sports" to "100",
+    "Telenovela" to "67",
+    "Thriller" to "13",
+    "Time Travel" to "127",
+    "Toxicidad" to "140",
+    "Toxicidad Nivel Chernóbil" to "156",
+    "Trabajo" to "130",
+    "Tragedia" to "37",
+    "Transmigración" to "38",
+    "Traps" to "68",
+    "Universitarios" to "152",
+    "Urban Fantasy" to "82",
+    "Vampire" to "103",
+    "Vampiros" to "57",
+    "Venganza" to "128",
+    "Viaje en el tiempo" to "124",
+    "Vida Cotidiana" to "105",
+    "Vida Escolar" to "28",
+    "Video Game" to "116",
+    "Webcomic" to "72",
+    "Webtoon" to "114",
+    "Workplace" to "146",
+    "Yaoi" to "31",
+    "Yaoi (Soft)" to "96",
+    "Yuri" to "52",
+)
