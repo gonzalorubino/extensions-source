@@ -77,10 +77,15 @@ jobs:
         run: |
           echo "$SIGNING_KEY" | base64 -d > signingkey.jks
           TASKS=()
+          FORMAT=()
           while read -r ext; do
             [[ -z "$ext" || "$ext" == \#* ]] && continue
             TASKS+=(":src:${ext//\//:}:assembleRelease")
+            FORMAT+=(":src:${ext//\//:}:spotlessApply")
           done < .github/personal/extensions.txt
+          # Formatting nits shouldn't block a personal build; show them so they can be fixed in the repo
+          ./gradlew "${FORMAT[@]}"
+          git diff --stat
           ./gradlew "${TASKS[@]}"
           rm signingkey.jks
           mkdir -p ~/apk-artifacts

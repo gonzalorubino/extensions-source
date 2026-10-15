@@ -151,12 +151,15 @@ abstract class ZonaTmoPersonal : KeiSource() {
                 .addQueryParameter("order_item", sort?.toUriPart() ?: "likes_count")
                 .addQueryParameter("order_dir", sort?.direction() ?: "desc")
                 .apply {
-                    filters.firstInstanceOrNull<TypeFilter>()?.toUriPart()?.takeIf(String::isNotEmpty)
-                        ?.let { addQueryParameter("type", it) }
-                    filters.firstInstanceOrNull<DemographyFilter>()?.toUriPart()?.takeIf(String::isNotEmpty)
-                        ?.let { addQueryParameter("demography", it) }
-                    filters.firstInstanceOrNull<StatusFilter>()?.toUriPart()?.takeIf(String::isNotEmpty)
-                        ?.let { addQueryParameter("status", it) }
+                    for (filter in filters) {
+                        val (key, value) = when (filter) {
+                            is TypeFilter -> "type" to filter.toUriPart()
+                            is DemographyFilter -> "demography" to filter.toUriPart()
+                            is StatusFilter -> "status" to filter.toUriPart()
+                            else -> continue
+                        }
+                        if (value.isNotEmpty()) addQueryParameter(key, value)
+                    }
                     filters.firstInstanceOrNull<GenreFilter>()?.state?.forEach {
                         when (it.state) {
                             Filter.TriState.STATE_INCLUDE -> addQueryParameter("genders[]", it.id)
