@@ -1,6 +1,5 @@
 package eu.kanade.tachiyomi.extension.es.zonatmoorgunoriginal
 
-import eu.kanade.tachiyomi.source.model.Filter
 import eu.kanade.tachiyomi.source.model.FilterList
 import eu.kanade.tachiyomi.source.model.MangasPage
 import eu.kanade.tachiyomi.source.model.Page
@@ -12,7 +11,6 @@ import keiyoushi.network.get
 import keiyoushi.network.rateLimit
 import keiyoushi.source.KeiSource
 import keiyoushi.utils.asJsoup
-import keiyoushi.utils.firstInstanceOrNull
 import keiyoushi.utils.getString
 import keiyoushi.utils.parseAs
 import keiyoushi.utils.textOrNull
@@ -43,7 +41,7 @@ abstract class ZonaTmoOrgUnoriginal : KeiSource() {
                 .set("X-Requested-With", "XMLHttpRequest")
                 .build()
 
-    override suspend fun getPopularManga(page: Int): MangasPage = getMangaList(page, "", FilterList())
+    override suspend fun getPopularManga(page: Int): MangasPage = getMangaList(page, order = "likes_count")
 
     override suspend fun getLatestUpdates(page: Int): MangasPage {
         val url =
@@ -114,56 +112,21 @@ abstract class ZonaTmoOrgUnoriginal : KeiSource() {
         page: Int,
         query: String,
         filters: FilterList,
-    ): MangasPage {
-        val ranking = filters.firstInstanceOrNull<RankingFilter>()?.toUriPart().orEmpty()
-        if (ranking.isNotEmpty()) return getRanking(ranking)
-        return getMangaList(page, query, filters)
-    }
-
-    // Only the home page exposes weekly/monthly tops (10 entries each, no covers)
-    private suspend fun getRanking(period: String): MangasPage {
-        val document = client.get(baseUrl).asJsoup()
-        val mangas =
-            document.select("#pills-$period .ranked-item a[href*=/library/]").mapNotNull { link ->
-                val canonicalUrl = link.attr("abs:href").toCanonicalMangaUrl()
-                val title = link.select("span").last()?.textOrNull() ?: return@mapNotNull null
-                SManga.create().apply {
-                    setUrlWithoutDomain(mangaIdentityUrl(title, canonicalUrl.mangaType()))
-                    this.title = title
-                    memo = memo.withCanonicalMangaUrl(canonicalUrl)
-                }
-            }
-        return MangasPage(mangas, false)
-    }
+    ): MangasPage = getMangaList(page, query, order = "likes_count")
 
     private suspend fun getMangaList(
         page: Int,
-        query: String,
-        filters: FilterList,
+        query: String? = null,
+        order: String,
     ): MangasPage {
-        val sort = filters.firstInstanceOrNull<SortFilter>()
         val url =
             "$baseUrl/biblioteca"
                 .toHttpUrl()
                 .newBuilder()
-                .addQueryParameter("title", query.trim())
-                .addQueryParameter("filter_by", filters.firstInstanceOrNull<SearchByFilter>()?.toUriPart() ?: "title")
-                .addQueryParameter("order_item", sort?.toUriPart() ?: "likes_count")
-                .addQueryParameter("order_dir", sort?.direction() ?: "desc")
-                .apply {
-                    filters.firstInstanceOrNull<TypeFilter>()?.toUriPart()?.takeIf(String::isNotEmpty)
-                        ?.let { addQueryParameter("type", it) }
-                    filters.firstInstanceOrNull<DemographyFilter>()?.toUriPart()?.takeIf(String::isNotEmpty)
-                        ?.let { addQueryParameter("demography", it) }
-                    filters.firstInstanceOrNull<StatusFilter>()?.toUriPart()?.takeIf(String::isNotEmpty)
-                        ?.let { addQueryParameter("status", it) }
-                    filters.firstInstanceOrNull<GenreFilter>()?.state?.forEach {
-                        when (it.state) {
-                            Filter.TriState.STATE_INCLUDE -> addQueryParameter("genders[]", it.id)
-                            Filter.TriState.STATE_EXCLUDE -> addQueryParameter("exclude_genders[]", it.id)
-                        }
-                    }
-                }
+                .addQueryParameter("title", query?.trim().orEmpty())
+                .addQueryParameter("filter_by", "title")
+                .addQueryParameter("order_item", order)
+                .addQueryParameter("order_dir", "desc")
                 .addQueryParameter("_pg", "1")
                 .addQueryParameter("page", page.toString())
                 .build()
@@ -365,16 +328,7 @@ abstract class ZonaTmoOrgUnoriginal : KeiSource() {
                 ?.let { Page(index, imageUrl = it) }
         }
 
-    override fun getFilterList(data: JsonElement?): FilterList = FilterList(
-        RankingFilter(),
-        Filter.Separator(),
-        SortFilter(),
-        SearchByFilter(),
-        TypeFilter(),
-        DemographyFilter(),
-        StatusFilter(),
-        GenreFilter(),
-    )
+    override fun getFilterList(data: JsonElement?): FilterList = FilterList()
 
     companion object {
         private const val MANGA_URL_KEY = "zonatmoorgunoriginal.mangaUrl"

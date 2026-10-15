@@ -1,4 +1,4 @@
-package eu.kanade.tachiyomi.extension.es.zonatmoorgunoriginal
+package eu.kanade.tachiyomi.extension.es.zonatmopersonal
 
 import eu.kanade.tachiyomi.source.model.Filter
 

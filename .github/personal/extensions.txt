@@ -1,2 +1,2 @@
 # Extensiones que se compilan y publican en el repo personal (una por línea: <lang>/<carpeta en src>)
-es/zonatmoorgunoriginal
+es/zonatmopersonal
