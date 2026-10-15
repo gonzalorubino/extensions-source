@@ -1,12 +1,12 @@
 {
   "eu.kanade.tachiyomi.extension.es.zonatmopersonal": {
     "apk": {
-      "name": "tachiyomi-es.zonatmopersonal-v1.6.1.apk",
-      "sha256": "e75d411a9c084d505e71619d27102d78b9d8a11f7837c0b7be243bfe6904b2c0"
+      "name": "tachiyomi-es.zonatmopersonal-v1.6.2.apk",
+      "sha256": "87d9eaad19acb669178c9e30813a3e310a4f50bd1b7619f70ad5b9970e3cbb48"
     },
     "jar": {
-      "name": "tachiyomi-es.zonatmopersonal-v1.6.1.jar",
-      "sha256": "bcea009ea68b9904af359c5ca14bc17028a9bc03408cb2d2f2dcb85111c5411a"
+      "name": "tachiyomi-es.zonatmopersonal-v1.6.2.jar",
+      "sha256": "a939bfa8801d8f28d8f78a82d1d78478494486d9492425982b656395127381c2"
     }
   }
 }
