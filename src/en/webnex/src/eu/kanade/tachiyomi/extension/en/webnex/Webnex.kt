@@ -4,6 +4,7 @@ import android.content.SharedPreferences
 import androidx.preference.EditTextPreference
 import androidx.preference.ListPreference
 import androidx.preference.PreferenceScreen
+import eu.kanade.tachiyomi.network.HttpException
 import eu.kanade.tachiyomi.source.ConfigurableSource
 import eu.kanade.tachiyomi.source.model.FilterList
 import eu.kanade.tachiyomi.source.model.MangasPage
@@ -18,24 +19,33 @@ import keiyoushi.utils.asJsoup
 import keiyoushi.utils.extractNextJs
 import keiyoushi.utils.getPreferencesLazy
 import keiyoushi.utils.parseAs
+import keiyoushi.utils.runWebView
 import keiyoushi.utils.textOrNull
+import keiyoushi.utils.toJsonString
 import keiyoushi.utils.tryParse
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
+import okhttp3.OkHttpClient
 import okhttp3.Response
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 import org.jsoup.nodes.TextNode
+import java.io.IOException
 import kotlin.math.roundToInt
+import kotlin.random.Random
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
 @Source
@@ -44,6 +54,11 @@ abstract class Webnex :
     ConfigurableSource {
 
     private val preferences by getPreferencesLazy()
+
+    // The site rejects the app's default Cache-Control (max-age=600)
+    override fun OkHttpClient.Builder.configureClient() = addNetworkInterceptor { chain ->
+        chain.proceed(chain.request().newBuilder().removeHeader("Cache-Control").build())
+    }
 
     override suspend fun getPopularManga(page: Int): MangasPage = getSearchManga(page, "", FilterList(SortFilter("coverage"), RatingFilter(preferences.rating)))
 
@@ -171,7 +186,8 @@ abstract class Webnex :
         val preferredGroups = commaList(PREF_PREFERRED_GROUPS, DEFAULT_PREFERRED_GROUPS)
         val onePerChapter = preferences.getString(PREF_CHAPTER_LIST, ONE_PER_GROUP) == ONE_PER_CHAPTER
 
-        return document.select("li.ch-row").flatMap { element ->
+        // Hidden rows are decoys the site's own page never shows
+        return document.select("li.ch-row:not([aria-hidden=true]):not([style*=display:none])").flatMap { element ->
             val link = element.selectFirst("a.ch-link")!!
             val number = link.selectFirst(".ch-num")!!
             val title = link.selectFirst(".ch-title")!!
@@ -239,11 +255,37 @@ abstract class Webnex :
     override suspend fun getPageList(chapter: SChapter): List<Page> {
         val chapterUrl = getChapterUrl(chapter).toHttpUrl()
         val pagesUrl = chapterUrl.newBuilder().addPathSegment("pages").build()
-        val reader = client.get(pagesUrl).parseAs<ReaderDto>()
+        val reader = readerFetch(pagesUrl).parseAs<ReaderDto>()
 
         // Relative /api/image/ paths or absolute CDN urls
         return reader.pages.mapIndexed { index, url ->
             Page(index, imageUrl = chapterUrl.resolve(url)!!.toString())
+        }
+    }
+
+    private val readerMutex = Mutex()
+
+    // The route refuses non-browser clients, and WebView navigations (X-Requested-With): fetch from a blank page
+    private suspend fun readerFetch(url: HttpUrl): String = readerMutex.withLock {
+        val script = javaClass.getResource("/assets/reader_fetch.js")!!.readText()
+        val bridge = "wnx" + Random.nextLong().toULong().toString(36)
+        val result = try {
+            runWebView<String>(timeout = 20.seconds) {
+                blockImages = true
+                userAgent = headers["User-Agent"]!!
+                webMessageBridge(bridge, setOf(baseUrl)) { resolve(it) }
+                loadData("$baseUrl/", "<script>($script)(${url.encodedPath.toJsonString()}, ${bridge.toJsonString()})</script>")
+            }.parseAs<WebFetchDto>()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Throwable) {
+            throw IOException(e.message, e)
+        }
+
+        when (result.status) {
+            200 -> result.body
+            0 -> throw IOException("Failed to load the page list")
+            else -> throw HttpException(result.status)
         }
     }
 
