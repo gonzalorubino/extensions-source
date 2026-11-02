@@ -139,12 +139,16 @@ class ReaderInput(
     val reader: JsonElement,
     val chapterId: Int,
     val seriesSlug: String,
+    var token: String? = null,
 )
 
 @Serializable
 class ReaderResult(
     val pages: List<PageDto>? = null,
     val error: String? = null,
+    val sitekey: String? = null,
+    val action: String? = null,
+    val cdata: String? = null,
 )
 
 @Serializable
