@@ -42,8 +42,10 @@ import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 import okio.IOException
+import org.jsoup.Jsoup
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
@@ -55,8 +57,7 @@ abstract class Kagane :
     private val kaganeLangs: List<String>
         get() = listOf(lang)
 
-    private val domain get() = baseUrl.removePrefix("https://")
-    private val apiUrl get() = "https://$domain/api/v2"
+    private val apiUrl get() = "$baseUrl/api/v2"
 
     private val prefs = getPreferences()
 
@@ -68,16 +69,18 @@ abstract class Kagane :
     // The image host 404s without the site's Origin
     override val imageFetch = Fetch.XHR
 
+    override suspend fun fetchBaseUrls(client: OkHttpClient): List<String> = client.get(HUB_URL, Fetch.DOCUMENT)
+        // Mirror cards sit at the top of a 1.2 MB page
+        .use { Jsoup.parse(it.peekBody(HUB_BYTES).string(), HUB_URL) }
+        .select("li:has(p[aria-live]) a[href^=https://]")
+        .map { it.absUrl("href") }
+
     private fun refreshTokenInterceptor(chain: Interceptor.Chain): Response {
         val request = chain.request()
         val url = request.url
         val urlToken = url.queryParameter("token") ?: return chain.proceed(request)
 
-        val chapterId = if (url.pathSegments[4] == "datasaver") {
-            url.pathSegments[5]
-        } else {
-            url.pathSegments[4]
-        }
+        val chapterId = url.pathSegments[url.pathSize - 2]
 
         val token = pageTokens.get(chapterId)?.value ?: urlToken
         val response = chain.proceed(request.withToken(token))
@@ -356,7 +359,7 @@ abstract class Kagane :
     override suspend fun getMangaByUrl(url: HttpUrl): SManga? {
         if (url.host !in LINK_HOSTS) return null
         val segments = url.pathSegments
-        if (segments.size < 2) return null
+        if (segments.size < 2 || segments[0] != "series") return null
         val seriesId = segments[1].takeLast(36)
         return parseMangaDetails(getMangaById(seriesId)).apply {
             this.url = seriesId
@@ -469,9 +472,7 @@ abstract class Kagane :
 
         return pageList.map { page ->
             val pageUrl = "$cacheUrl/api/v2/books/page".toHttpUrl().newBuilder().apply {
-                if (dataSaver) {
-                    addPathSegment("datasaver")
-                }
+                addPathSegment(if (dataSaver) "datasaver" else "original")
                 addPathSegment(chapterId)
                 addPathSegment("${page.pageUuid}.${page.ext ?: "jxl"}")
                 addQueryParameter("token", accessToken)
@@ -507,14 +508,12 @@ abstract class Kagane :
         val integrityToken = getIntegrityToken()
 
         val challengeUrl = "$apiUrl/books/$chapterId".toHttpUrl().newBuilder()
-            .addQueryParameter("is_datasaver", dataSaver.toString())
+            .addQueryParameter("intent", "Read")
             .build()
-
-        val challengeBody = "{}".toJsonRequestBody()
 
         val headers = headers.newBuilder().add("x-integrity-token", integrityToken).build()
 
-        val response = client.post(challengeUrl.toString(), headers, Fetch.XHR, challengeBody)
+        val response = client.post(challengeUrl, headers, Fetch.XHR, "".toRequestBody())
 
         return response.parseAs<ChallengeDto>()
     }
@@ -708,6 +707,9 @@ abstract class Kagane :
     // ============================= Utilities ==============================
 
     companion object {
+        private const val HUB_URL = "https://kagane.org/"
+        private const val HUB_BYTES = 128 * 1024L
+
         private val TOKEN_REFRESH_INTERVAL = 1.minutes
         private val LINK_HOSTS = setOf("kagane.cx", "kagane.moe", "kagane.net")
         private const val MAX_SOURCE_FILTER = 50
