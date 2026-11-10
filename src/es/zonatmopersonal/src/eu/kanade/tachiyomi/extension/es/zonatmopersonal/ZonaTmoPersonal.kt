@@ -11,6 +11,7 @@ import eu.kanade.tachiyomi.source.model.SChapter
 import eu.kanade.tachiyomi.source.model.SManga
 import eu.kanade.tachiyomi.source.model.SMangaUpdate
 import keiyoushi.annotation.Source
+import keiyoushi.network.Fetch
 import keiyoushi.network.get
 import keiyoushi.network.rateLimit
 import keiyoushi.source.KeiSource
@@ -64,7 +65,7 @@ abstract class ZonaTmoPersonal :
                 .newBuilder()
                 .addQueryParameter("page", page.toString())
                 .build()
-        val document = client.get(url).asJsoup()
+        val document = client.get(url, Fetch.DOCUMENT).asJsoup()
 
         val seenMangaUrls = mutableSetOf<String>()
         val mangas =
@@ -116,7 +117,7 @@ abstract class ZonaTmoPersonal :
                 .addQueryParameter("q", title)
                 .build()
         return client
-            .get(searchUrl)
+            .get(searchUrl, Fetch.XHR)
             .parseAs<List<SearchSuggestionDto>>()
             .firstNotNullOfOrNull { it.mangaUrl(title, type) }
             ?: throw Exception("No se encontró la ficha del manga")
@@ -134,7 +135,7 @@ abstract class ZonaTmoPersonal :
 
     // Only the home page exposes weekly/monthly tops (10 entries each, no covers)
     private suspend fun getRanking(period: String): MangasPage {
-        val document = client.get(baseUrl).asJsoup()
+        val document = client.get(baseUrl, Fetch.DOCUMENT).asJsoup()
         val mangas =
             document.select("#pills-$period .ranked-item a[href*=/library/]").mapNotNull { link ->
                 val canonicalUrl = link.attr("abs:href").toCanonicalMangaUrl()
@@ -185,7 +186,7 @@ abstract class ZonaTmoPersonal :
                 .addQueryParameter("page", page.toString())
                 .build()
 
-        val html = client.get(url, ajaxHeaders).parseAs<JsonObject>().getString("html")
+        val html = client.get(url, ajaxHeaders, Fetch.XHR).parseAs<JsonObject>().getString("html")
         val document = Jsoup.parse(html, baseUrl)
         val mangas = document.select("#library-grid .element").mapNotNull(::mangaFromElement)
         val hasNextPage =
@@ -229,7 +230,7 @@ abstract class ZonaTmoPersonal :
         }
 
         val canonicalUrl = url.toString().toCanonicalMangaUrl()
-        return parseMangaDetails(client.get(url).asJsoup()).apply {
+        return parseMangaDetails(client.get(url, Fetch.DOCUMENT).asJsoup()).apply {
             setUrlWithoutDomain(mangaIdentityUrl(title, canonicalUrl.mangaType()))
             memo = memo.withCanonicalMangaUrl(canonicalUrl)
         }
@@ -253,7 +254,7 @@ abstract class ZonaTmoPersonal :
                     identityUrl?.queryParameter("title") ?: manga.title,
                     identityUrl?.queryParameter("type"),
                 ).toCanonicalMangaUrl()
-        val document = client.get(baseUrl.toHttpUrl().resolve(canonicalUrl)!!).asJsoup()
+        val document = client.get(baseUrl.toHttpUrl().resolve(canonicalUrl)!!, Fetch.DOCUMENT).asJsoup()
         return SMangaUpdate(
             manga =
             parseMangaDetails(document).apply {
@@ -372,7 +373,7 @@ abstract class ZonaTmoPersonal :
         }.distinctBy { it.url }
 
     override suspend fun getPageList(chapter: SChapter): List<Page> = client
-        .get(baseUrl + chapter.url)
+        .get(baseUrl + chapter.url, Fetch.DOCUMENT)
         .asJsoup()
         .select("#reader-wrap img.reader-image")
         .mapIndexedNotNull { index, image ->
