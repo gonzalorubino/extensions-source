@@ -126,7 +126,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           SIGNING_KEY_FINGERPRINT: ${{ vars.SIGNING_KEY_FINGERPRINT }}
         run: |
-          pip install protobuf
+          python -m pip install --user --upgrade protobuf
           python -u ../main/.github/personal/publish.py "[]" "$GITHUB_SHA" true
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
