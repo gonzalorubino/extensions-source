@@ -11,9 +11,9 @@
         "name": "ZonaTMO (Personal)",
         "packageName": "eu.kanade.tachiyomi.extension.es.zonatmopersonal",
         "resources": {
-          "apkUrl": "https://github.com/gonzalorubino/extensions-source/releases/download/f4500ff/tachiyomi-es.zonatmopersonal-v1.6.3.apk",
+          "apkUrl": "https://github.com/gonzalorubino/extensions-source/releases/download/58def21/tachiyomi-es.zonatmopersonal-v1.6.3.apk",
           "iconUrl": "https://raw.githubusercontent.com/gonzalorubino/extensions-source/main/src/es/zonatmopersonal/res/mipmap-xhdpi/ic_launcher.png",
-          "jarUrl": "https://github.com/gonzalorubino/extensions-source/releases/download/f4500ff/tachiyomi-es.zonatmopersonal-v1.6.3.jar"
+          "jarUrl": "https://github.com/gonzalorubino/extensions-source/releases/download/58def21/tachiyomi-es.zonatmopersonal-v1.6.3.jar"
         },
         "extensionLib": "1.6",
         "versionCode": "106003",
