@@ -6,7 +6,7 @@ plugins {
 
 keiyoushi {
     name = "ZonaTMO (Personal)"
-    versionCode = 3
+    versionCode = 4
     contentWarning = ContentWarning.MIXED
     libVersion = "1.6"
 
